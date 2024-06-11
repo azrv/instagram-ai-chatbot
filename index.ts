@@ -1,11 +1,13 @@
 import "dotenv/config";
 import * as fs from "fs";
-
-import { login, getAndSend, handleLatestMessage } from "./api/instagram";
-
 import config from "./config.json";
 
-import { clientHandle, intervalChecks, sleep } from "./util";
+import {
+  login,
+  handleMessage
+} from "./api/instagram";
+
+import { clientHandle, intervalChecks } from "./util";
 
 const client = clientHandle(() => login({ client }));
 
@@ -20,7 +22,7 @@ const main = async () => {
   }
 
   if (!isLogin) {
-    await login({ client }).catch(() => {});
+    await login({ client }).catch(() => { });
   }
 
   if (isLogin) {
@@ -29,42 +31,16 @@ const main = async () => {
 
   console.log(`Watching for messages. (${config.waitTime} seconds)`);
 
-  let collectedThreads: { id: string; messages: string[] }[] = [];
-  client.realtime.on("message", async (message) => {
-    const newThreads = await handleLatestMessage({
+  client.realtime.on("message", async (instMessage) => {
+    await handleMessage({
       client,
-      message,
-      collectedThreads,
+      instMessage,
     });
-
-    if (newThreads) {
-      collectedThreads = newThreads;
-    }
   });
 
   await client.realtime.connect({
     irisData: await client.feed.directInbox().request(),
-  });
-
-  while (true) {
-    if (collectedThreads.length > 0) {
-      collectedThreads.forEach(async (thread) => {
-        collectedThreads = collectedThreads.filter(
-          (item) => item.id !== thread.id
-        );
-
-        await getAndSend({
-          client,
-          thread: thread.id,
-          allMessages: thread.messages,
-        });
-
-        console.log(`\nWatching for messages. (${config.waitTime} seconds)`);
-      });
-    }
-
-    await sleep({ seconds: config.waitTime });
-  }
+  })
 };
 
 main();

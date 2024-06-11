@@ -3,20 +3,27 @@ import { getResponse } from "../openai";
 
 import { loadData, saveData } from "../../util";
 import sendMessage from "./sendMessage";
+import { Message } from "./types";
 
 interface GetAndSendProps {
   client: IgApiClientRealtime;
   thread: string;
-  allMessages: string[];
+  allMessages: Message[];
 }
 
-const getAndSend = async ({ client, thread, allMessages }: GetAndSendProps) => {
-  let messagesCombined = "";
-  allMessages.forEach((message) => {
-    let last = false;
-    if (allMessages.indexOf(message) == allMessages.length - 1) last = true;
+const getAndSend = async ({
+  client,
+  thread,
+  allMessages
+}: GetAndSendProps) => {
+  const messageIds = allMessages.map((message) => message.id);
 
-    messagesCombined += message + (!last ? ", " : "");
+  let messagesCombined = "";
+
+  allMessages.forEach((message, index) => {
+    const last = index === messageIds.length - 1;
+
+    messagesCombined += message.text + (!last ? ", " : "");
   });
 
   console.log(
